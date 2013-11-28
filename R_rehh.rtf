@@ -1,0 +1,15 @@
+for(i in 1:22){
+hap_file=paste("/media/EXT_1/Master_project/popgen_subset_100_nomulti/chr",i,"/popgen_subset_100_nomulti.chr",i,".rehh-compatible.txt",sep="") 
+exp_file=paste("/media/EXT_1/Master_project/popgen_subset_100_nomulti/chr",i,"/popgen_subset_100_nomulti.chr",i,".scan_hh.txt",sep="") 
+data<-data2haplohh(hap_file=hap_file,map_file="/media/EXT_1/Master_project/popgen_subset_100_nomulti/popgen_subset_100_nomulti.map_anc.inp",chr.name=i)
+res<-scan_hh(data)
+write.table(res, exp_file, sep="\t")
+if(i==1){wg.res<-res}else{wg.res<-rbind(wg.res,res)}
+}
+exp_file=paste("/media/EXT_1/Master_project/popgen_subset_100_nomulti/popgen_subset_100_nomulti.wg.scan_hh.txt",sep="") 
+write.table(wg.res, exp_file, sep="\t")
+wg.ihs<-ihh2ihs(wg.res)
+exp_file=paste("/media/EXT_1/Master_project/popgen_subset_100_nomulti/popgen_subset_100_nomulti.wg.iHS.txt",sep="") 
+write.table(wg.ihs$res.ihs, exp_file, sep="\t")
+exp_file=paste("/media/EXT_1/Master_project/popgen_subset_100_nomulti/popgen_subset_100_nomulti.wg.iHS.summary.txt",sep="") 
+write.table(wg.ihs$summary.class, exp_file, sep="\t")
