@@ -1,0 +1,143 @@
+ihsregionsplot<-function(res.snp2region,minsnps=6){
+	filtered.res<-subset(res.snp2region, res.snp2region$tot>minsnps)
+	tmp_chr = unique(filtered.res$chrom)
+	col_chr = 1:length(tmp_chr)
+	names(col_chr) = tmp_chr
+	pos_chr = rep(0, length(tmp_chr))
+	pch=16
+	main = "Ratio"
+	plot(filtered.res$rat, pch = pch, las = 1, col = col_chr[as.character(filtered.res$chrom )], xaxt = "n", xlab = "Chromosome", 	ylab = "|iHS|", main = main)
+}
+
+ihs.snp2region<-function(res.ihs,chr=22,snp_window=10,maxwindow=50000){
+chrom=vector()
+pos = vector()
+start=vector()
+end=vector()
+tot=vector()
+sig=vector()
+rat=vector()
+names=vector()
+ind=vector()
+ihs=vector()
+for(i in 1:chr){
+  popgen.chr<-subset(res.ihs,popgen.ihs$CHR==i)
+  tot_snps<-nrow(popgen.chr)
+  max_window<-ceiling(tot_snps/snp_window)
+  for(x in 1:tot_snps){
+    snp_start<-x-snp_window
+    snp_end<-x+snp_window
+    snp_pos = popgen.chr[x,2]
+	snp_ihs<-popgen.chr[x,3]
+    name = rownames(popgen.chr[x,])[1]
+    if(snp_end>tot_snps){snp_end=tot_snps}
+    if(snp_start<1){snp_start=1}
+    chr.subset<-popgen.chr[snp_start:snp_end, 1:4]
+    chr.subset<-subset(chr.subset, chr.subset$POSITION>(snp_pos-50000) & chr.subset$POSITION<(snp_pos+50000))
+    reg_start<-head(chr.subset, n=1)[1,2]
+    reg_end<-tail(chr.subset, n=1)[1,2]
+    total_snps<-nrow(chr.subset)
+    chr.sig<-subset(chr.subset,abs(chr.subset$iHS)>2)
+    sig_snps<-nrow(chr.sig)
+    ratio<-(sig_snps/total_snps)
+    chrom<-append(chrom, i)
+    start<-append(start, reg_start)
+    end<-append(end, reg_end)
+    tot<-append(tot, total_snps)
+    sig<-append(sig, sig_snps)
+    rat<-append(rat, ratio)
+    pos<-append(pos, snp_pos)
+    names<-append(names, name)
+    ihs<-append(ihs,
+	}
+}
+window.res <- data.frame(names, chrom, pos, start, end, tot, sig, rat)
+return(window.res)
+}    
+
+
+ihs.windows<-function(res.ihs,chr=22,windowsize=100000,overlap=F,overlap.size=50000){
+chrom=vector()
+start=vector()
+end=vector()
+tot=vector()
+sig=vector()
+rat=vector()
+all_ihs=vector()
+names=vector()
+if(overlap==F){
+for(i in 1:chr){
+print(paste("Processing Chromosome",i,sep=" "))
+  popgen.chr<-subset(res.ihs,res.ihs$CHR==i)
+  max_pos<-tail(popgen.chr, n=1)[1,2]
+  reg_max<-ceiling(max_pos/windowsize)
+  for(x in 1:reg_max){
+    reg_start<-((x-1)*windowsize)+1
+    reg_end<-x*windowsize
+	if(reg_end>max_pos){reg_end=max_pos}
+    chr.subset<-subset(popgen.chr,popgen.chr$POSITION>=reg_start & popgen.chr$POSITION<=reg_end)
+    total_snps<-nrow(chr.subset)
+    chr.sig<-subset(chr.subset,abs(chr.subset$iHS)>2)
+    no.sig<-nrow(chr.sig)
+    highest<-head(chr.subset[order(-abs(chr.subset$iHS)),1:4],n=1)
+    ratio<-(no.sig/total_snps)
+    chrom<-append(chrom, i)
+    start<-append(start, reg_start)
+    end<-append(end, reg_end)
+    tot<-append(tot, total_snps)
+    sig<-append(sig, no.sig)
+    rat<-append(rat, ratio)
+    name = rownames(highest)[1]
+    snp_ihs = highest[1,3]
+	names<-append(names, name)
+	all_ihs<-append(all_ihs, snp_ihs)
+}}}
+else
+{
+for(i in 1:chr){
+  popgen.chr<-subset(res.ihs,res.ihs$CHR==i)
+  max_pos<-tail(popgen.chr, n=1)[1,2]
+  reg_max<-ceiling(max_pos/windowsize)
+  for(x in 1:reg_max){
+    reg_start<-((x-1)*windowsize)+1
+    reg_end<-x*windowsize
+	if(reg_end>max_pos){reg_end=max_pos}
+    chr.subset<-subset(popgen.chr,popgen.chr$POSITION>=reg_start & popgen.chr$POSITION<=reg_end)
+    total_snps<-nrow(chr.subset)
+    chr.sig<-subset(chr.subset,abs(chr.subset$iHS)>2)
+    no.sig<-nrow(chr.sig)
+    highest<-head(chr.subset[order(abs(chr.subset$iHS)),1:4],n=1)
+    ratio<-(no.sig/total_snps)
+    chrom<-append(chrom, i)
+    start<-append(start, reg_start)
+    end<-append(end, reg_end)
+    tot<-append(tot, total_snps)
+    sig<-append(sig, no.sig)
+    rat<-append(rat, ratio)
+    name = rownames(highest)[1]
+    snp_ihs = highest[3]
+	names<-append(names, name)
+	ihs<-append(ihs, snp_ihs)
+	reg_start<-((x-1)*windowsize)+1+overlap.size
+    reg_end<-x*windowsize+overlap.size
+	if(reg_end>max_pos){reg_end=max_pos}
+    chr.subset<-subset(popgen.chr,popgen.chr$POSITION>=reg_start & popgen.chr$POSITION<=reg_end)
+    total_snps<-nrow(chr.subset)
+    chr.sig<-subset(chr.subset,abs(chr.subset$iHS)>2)
+    no.sig<-nrow(chr.sig)
+    highest<-head(chr.subset[order(-abs(chr.subset$iHS)),1:4],n=1)
+    ratio<-(no.sig/total_snps)
+    chrom<-append(chrom, i)
+    start<-append(start, reg_start)
+    end<-append(end, reg_end)
+    tot<-append(tot, total_snps)
+    sig<-append(sig, no.sig)
+    rat<-append(rat, ratio)
+    name = rownames(highest)[1]
+    snp_ihs = highest[1,3]
+	names<-append(names, name)
+	all_ihs<-append(all_ihs, snp_ihs)
+}}}
+all.res <- data.frame(names, chrom, start, end, tot, sig, rat, all_ihs)	
+return(all.res)
+}

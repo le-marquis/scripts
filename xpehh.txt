@@ -1,0 +1,149 @@
+#XP-EHH R-script
+library(rehh)
+
+trapezoidal.integral<-function(lb,rb,f_lb,f_rb){
+integral<-(rb-lb)*((f_lb+f_rb)/2)
+return(integral)
+}
+
+calc_xpehh<-function(pop1_hap,pop2_hap,map_file,chr.name)
+{
+tmp="/tmp/R_tmp"
+pop1.haplo<-data2haplohh(hap_file=pop1_hap,map_file=map_file,chr.name=chr.name)
+pop2.haplo<-data2haplohh(hap_file=pop2_hap,map_file=map_file,chr.name=chr.name)
+pop1.raw<-read.table(pop1_hap)
+pop2.raw<-read.table(pop2_hap)
+hapnum.pop1<-nrow(pop1.raw)
+for(i in 1:nrow(pop2.raw)){pop2.raw[i,1]<-pop2.raw[i,1]+hapnum.pop1}
+allpop.raw=rbind(pop1.raw,pop2.raw)
+write.table(allpop.raw, file=tmp, row.name=F, col.names=F, sep=" ")
+allpop.haplo<-data2haplohh(hap_file=tmp,map_file=map_file,chr.name=chr.name)
+xpehh.res<-cbind(allpop.haplo@snp.name,rep(allpop.haplo@chr.name,),allpop.haplo@position,rep(0,),rep(0,),rep(0,),rep(0,),rep(0,),rep(0,))
+colnames(xpehh.res)<-c("snp.name","chrom","position","pop1.anc.int","pop1.der.int","pop2.anc.int","pop2.der.int","anc.xp-ehh","der.xp-ehh")
+for(i in 1:allpop.haplo@nsnp)
+	{
+	print(paste("Processing SNP: ",i," of ",allpop.haplo@nsnp))
+	snp.x.us=0
+	snp.x.ds=0
+	snp.y.us=0
+	snp.y.ds=0
+	snp.x.us2=0
+	snp.x.ds2=0
+	snp.y.us2=0
+	snp.y.ds2=0
+	anc.pop1.int=0
+	anc.pop2.int=0
+	der.pop1.int=0
+	der.pop2.int=0
+	allpop.ehh<-calc_ehh(allpop.haplo,mrk=i,plot=F, limehh=0.03)
+	#print(allpop.ehh)
+	snp.x<-subset(allpop.ehh$ehh[1,], round(abs(allpop.ehh$ehh[1,]-0.04),10)<=0.01)
+	snp.y<-subset(allpop.ehh$ehh[2,], round(abs(allpop.ehh$ehh[2,]-0.04),10)<=0.01)
+	if(length(snp.x)>0 & length(snp.y)>0){
+	for(x in 1:length(snp.x))
+		{
+		ind<-which(colnames(allpop.ehh$ehh)==names(snp.x[x]))
+		if(snp.x.us2==0 & ind<i){snp.x.us2=snp.x[x]}
+		if(snp.x.ds2==0 & ind>i){snp.x.ds2=snp.x[x]}
+		if(ind<i & abs(snp.x[x]-0.04)<abs(snp.x.us2-0.04))
+			{
+			snp.x.us2<-snp.x[x]
+			}
+		if(ind<i & abs(snp.x[x]-0.04)==abs(snp.x.us2-0.04))
+			{
+			if(which(colnames(allpop.ehh$ehh)==names(snp.x.us2))<ind)
+				{
+				snp.x.us2<-snp.x[x]
+				}
+			}
+		if(ind>i & abs(snp.x[x]-0.04)<abs(snp.x.ds2-0.04))
+			{
+			snp.x.ds2<-snp.x[x]
+			}
+		if(ind>i & abs(snp.x[x]-0.04)==abs(snp.x.ds2-0.04))
+			{
+			if(which(colnames(allpop.ehh$ehh)==names(snp.x.ds2))>ind)
+				{
+				snp.x.ds2<-snp.x[x]
+				}
+			}
+		#print(c(snp.x[x],snp.x.us2, snp.x.ds2))
+		}
+	for(y in 1:length(snp.y))
+		{
+		ind<-which(colnames(allpop.ehh$ehh)==names(snp.y[y]))
+		if(snp.y.us2==0 & ind<i){snp.y.us2=snp.y[y]}
+		if(snp.y.ds2==0 & ind>i){snp.y.ds2=snp.y[y]}
+		if(ind<i & abs(snp.y[y]-0.04)<abs(snp.y.us2-0.04))
+			{
+			snp.y.us2<-snp.y[y]
+			}
+		if(ind<i & abs(snp.y[y]-0.04)==abs(snp.y.us2-0.04))
+			{
+			if(which(colnames(allpop.ehh$ehh)==names(snp.y.us2))<ind)
+				{
+				snp.y.us2<-snp.y[y]
+				}
+			}
+		if(ind>i & abs(snp.y[y]-0.04)<abs(snp.y.ds2-0.04))
+			{
+			snp.y.ds2<-snp.y[y]
+			}
+		if(ind>i & abs(snp.y[y]-0.04)==abs(snp.y.ds2-0.04))
+			{
+			if(which(colnames(allpop.ehh$ehh)==names(snp.y.ds2))>ind)
+				{
+				snp.y.ds2<-snp.y[y]
+				}
+			}
+		#print(c(snp.y[y],snp.y.us2, snp.y.ds2))
+		}
+	
+	snp.x.ds<-snp.x.ds2
+	snp.x.us<-snp.x.us2
+	snp.y.ds<-snp.y.ds2
+	snp.y.us<-snp.y.us2
+	print(c(snp.x.ds,snp.x.us,snp.y.ds,snp.y.us))
+	}
+	if((snp.x.ds!=0 & snp.y.ds!=0) | (snp.x.us!=0 & snp.y.us!=0))
+		{
+		print('TRUE')
+		if(snp.x.ds!=0){snp.x.ds<-which(colnames(allpop.ehh$ehh)==names(snp.x.ds))}else{snp.x.ds<-i}
+		if(snp.x.us!=0){snp.x.us<-which(colnames(allpop.ehh$ehh)==names(snp.x.us))}else{snp.x.us<-i}
+		if(snp.y.ds!=0){snp.y.ds<-which(colnames(allpop.ehh$ehh)==names(snp.y.ds))}else{snp.y.ds<-i}
+		if(snp.y.us!=0){snp.y.us<-which(colnames(allpop.ehh$ehh)==names(snp.y.us))}else{snp.y.us<-i}
+		pop1.ehh<-calc_ehh(pop1.haplo, mrk=i, plot=F, limehh=0.02)
+		pop2.ehh<-calc_ehh(pop2.haplo, mrk=i, plot=F, limehh=0.02)
+		for(j in snp.x.us:(snp.x.ds-1))
+			{
+			anc.pop1.lb<-pop1.ehh$ehh[1,j]
+			anc.pop1.rb<-pop1.ehh$ehh[1,j+1]
+			anc.pop2.lb<-pop2.ehh$ehh[1,j]
+			anc.pop2.rb<-pop2.ehh$ehh[1,j+1]
+			pos.lb<-allpop.haplo@position[j]
+			pos.rb<-allpop.haplo@position[j+1]
+			anc.pop1.int<-anc.pop1.int+trapezoidal.integral(pos.lb,pos.rb,anc.pop1.lb,anc.pop1.rb)
+			anc.pop2.int<-anc.pop2.int+trapezoidal.integral(pos.lb,pos.rb,anc.pop2.lb,anc.pop2.rb)
+			}
+		for(j in snp.y.us:(snp.y.ds-1))
+			{
+			der.pop1.lb<-pop1.ehh$ehh[2,j]
+			der.pop1.rb<-pop1.ehh$ehh[2,j+1]
+			der.pop2.lb<-pop2.ehh$ehh[2,j]
+			der.pop2.rb<-pop2.ehh$ehh[2,j+1]
+			pos.lb<-allpop.haplo@position[j]
+			pos.rb<-allpop.haplo@position[j+1]
+			der.pop1.int<-der.pop1.int+trapezoidal.integral(pos.lb,pos.rb,der.pop1.lb,der.pop1.rb)
+			der.pop2.int<-der.pop2.int+trapezoidal.integral(pos.lb,pos.rb,der.pop2.lb,der.pop2.rb)
+			}
+		}
+	xpehh.res[i,4]<-anc.pop1.int
+	xpehh.res[i,5]<-der.pop1.int
+	xpehh.res[i,6]<-anc.pop2.int
+	xpehh.res[i,7]<-der.pop2.int
+	xpehh.res[i,8]<-log(anc.pop1.int/anc.pop2.int)
+	xpehh.res[i,9]<-log(der.pop1.int/der.pop2.int)
+	}
+return(xpehh.res)
+}
+res<-calc_xpehh(pop1_hap='/Volumes/EXT_1/LCT_test/EUR.chr2.136500000-136600000/chr2/EUR.chr2.136500000-136600000.chr2.rehh-compatible.txt', pop2_hap='/Volumes/EXT_1/LCT_test/YRI.chr2.136500000-136600000/chr2/YRI.chr2.136500000-136600000.chr2.rehh-compatible.txt', map_file='/Volumes/EXT_1/LCT_test/YRI.chr2.136500000-136600000/YRI.chr2.136500000-136600000.map_anc.inp', chr.name=2)
